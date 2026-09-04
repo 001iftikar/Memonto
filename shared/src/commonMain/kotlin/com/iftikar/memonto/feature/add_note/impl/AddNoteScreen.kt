@@ -26,10 +26,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -37,19 +35,27 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddNoteScreen(
     onCloseClick: () -> Unit = {},
-    onSaveClick: () -> Unit = {}
+    showError: (String) -> Unit,
+    viewModel: AddNoteViewModel
 ) {
-    var titleText by remember { mutableStateOf("") }
-    var relatedTo by remember { mutableStateOf("") }
-    var bodyText by remember { mutableStateOf("") }
-
-    // Using a Column inside a Box to allow your custom floating bottom nav
-    // to sit perfectly on top of this content later.
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val action = viewModel::onAction
+    LaunchedEffect(true) {
+        viewModel.event.collect { event ->
+            when(event) {
+                AddNoteEvent.OnSuccess -> {onCloseClick()}
+                is AddNoteEvent.ShowError -> {
+                    showError(event.error)
+                }
+            }
+        }
+    }
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 
         Column(
@@ -72,8 +78,9 @@ fun AddNoteScreen(
                 }
 
                 Button(
-                    onClick = onSaveClick,
+                    onClick = { action(AddNoteScreenAction.OnSaveClick) },
                     shape = RoundedCornerShape(50),
+                    enabled = state.enableSave,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -94,17 +101,18 @@ fun AddNoteScreen(
 
             // --- TITLE INPUT ---
             BasicTextField(
-                value = titleText,
-                onValueChange = { titleText = it },
+                value = state.title,
+                onValueChange = { action(AddNoteScreenAction.OnTitleChange(it)) },
                 textStyle = TextStyle(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold
                 ),
+                maxLines = 1,
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth(),
                 decorationBox = { innerTextField ->
-                    if (titleText.isEmpty()) {
+                    if (state.title.isEmpty()) {
                         Text(
                             text = "Untitled Note",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -119,17 +127,18 @@ fun AddNoteScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             BasicTextField(
-                value = relatedTo,
-                onValueChange = { relatedTo = it },
+                value = state.relatedTo ?: "",
+                onValueChange = { action(AddNoteScreenAction.OnRelatedToChange(it)) },
                 textStyle = TextStyle(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold
                 ),
+                maxLines = 1,
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth(),
                 decorationBox = { innerTextField ->
-                    if (titleText.isEmpty()) {
+                    if (state.relatedTo.isNullOrEmpty()) {
                         Text(
                             text = "Hmm... What's this related to? (Optional)",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -144,8 +153,8 @@ fun AddNoteScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             BasicTextField(
-                value = bodyText,
-                onValueChange = { bodyText = it },
+                value = state.body,
+                onValueChange = { action(AddNoteScreenAction.OnBodyChange(it)) },
                 textStyle = TextStyle(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 18.sp,
@@ -155,7 +164,7 @@ fun AddNoteScreen(
                 // Weight 1f ensures the text field expands to fill all remaining vertical space
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 decorationBox = { innerTextField ->
-                    if (bodyText.isEmpty()) {
+                    if (state.body.isEmpty()) {
                         Text(
                             text = "What you want to remember goes here...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),

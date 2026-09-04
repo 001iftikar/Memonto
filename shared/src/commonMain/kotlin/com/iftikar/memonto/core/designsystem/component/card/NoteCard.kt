@@ -34,10 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.retain.retain
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,16 +42,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.iftikar.memonto.core.model.Note
+import com.iftikar.memonto.feature.home.impl.HomeScreenAction
 
 @Composable
 fun NoteCard(
-    title: String,
-    description: String,
-    timeText: String,
-    isPinned: Boolean = false
+    note: Note,
+    timeStampText: String,
+    longPressedVisible: Boolean,
+    onLongPressed: () -> Unit,
+    onActionPerform: (HomeScreenAction) -> Unit
 ) {
-    var isLongPressed by retain { mutableStateOf(false) }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -66,19 +63,19 @@ fun NoteCard(
 
         Card(
             modifier = Modifier
-                .heightIn(min = 200.dp, max = 400.dp)
+                .heightIn(min = 170.dp, max = 400.dp)
                 .weight(1f)
                 .clip(RoundedCornerShape(16.dp))
                 .combinedClickable(
                     onClick = { /* Normal click */ },
-                    onLongClick = { isLongPressed = !isLongPressed }
+                    onLongClick = onLongPressed
                 ),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-        ){
+        ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
@@ -87,27 +84,29 @@ fun NoteCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(0.5f, fill = false)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary.copy(
-                                    alpha = 0.3f
-                                ),
-                                shape = RoundedCornerShape(12.dp)
+                    if (note.relationTo != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(0.5f, fill = false)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary.copy(
+                                        alpha = 0.3f
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 6.dp)
+                        ) {
+                            Text(
+                                text = note.relationTo,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.titleSmall
                             )
-                            .padding(horizontal = 6.dp)
-                    ) {
-                        Text(
-                            text = "Chemistry",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleSmall
-                        )
+                        }
                     }
 
-                    if (isPinned) {
+                    if (note.pinnedAt != null) {
                         Spacer(Modifier.width(24.dp))
                         Icon(
                             imageVector = Icons.Outlined.PushPin,
@@ -121,7 +120,7 @@ fun NoteCard(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = title,
+                    text = note.title,
                     fontSize = 20.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -131,7 +130,7 @@ fun NoteCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = description,
+                    text = note.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
@@ -145,7 +144,7 @@ fun NoteCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (!isPinned) {
+                    if (note.pinnedAt == null) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = "Time",
@@ -159,7 +158,7 @@ fun NoteCard(
                     }
 
                     Text(
-                        text = timeText,
+                        text = timeStampText,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = 0.7f
                         ),
@@ -170,7 +169,7 @@ fun NoteCard(
         }
 
         AnimatedVisibility(
-            visible = isLongPressed,
+            visible = longPressedVisible,
             enter = expandHorizontally(
                 expandFrom = Alignment.Start,
                 animationSpec = tween(300)
@@ -180,41 +179,56 @@ fun NoteCard(
                 animationSpec = tween(300)
             ) + fadeOut(animationSpec = tween(300))
         ) {
-            LongPressedCard()
+            LongPressedCard(
+                pinnedAt = note.pinnedAt,
+                onPinClick = if (note.pinnedAt == null) {
+                     { onActionPerform(HomeScreenAction.OnPinPress(note.id))
+                     onLongPressed()}
+                } else {
+                    { onActionPerform(HomeScreenAction.OnUnPinPress(note.id)); onLongPressed() }
+                },
+                onDeleteClick = { onActionPerform(HomeScreenAction.OnDeletePress(note.id)) },
+                onEditClick = {}
+            )
         }
     }
 }
 
 @Composable
-private fun LongPressedCard() {
+private fun LongPressedCard(
+    pinnedAt: Long?,
+    onPinClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit
+) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)
     ) {
-       Column(
-           modifier = Modifier
-               .height(180.dp)
-               .padding(16.dp),
-           verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
-           horizontalAlignment = Alignment.Start
-       ) {
-           UtilityChip(
-               icon = Icons.Default.PushPin,
-               text = "Pin",
-               onClick = {}
-           )
-           UtilityChip(
-               icon = Icons.Outlined.EditNote,
-               text = "Edit",
-               onClick = {}
-           )
-           UtilityChip(
-               icon = Icons.Outlined.DeleteOutline,
-               text = "Delete",
-               onClick = {}
-           )
-       }
+        Column(
+            modifier = Modifier
+                .height(180.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.Start
+        ) {
+            UtilityChip(
+                icon = Icons.Default.PushPin,
+                text = if (pinnedAt == null) "Pin" else "Unpin",
+                onClick = onPinClick
+            )
+            UtilityChip(
+                icon = Icons.Outlined.EditNote,
+                text = "Edit",
+                onClick = onEditClick
+            )
+            UtilityChip(
+                icon = Icons.Outlined.DeleteOutline,
+                text = "Delete",
+                onClick = onDeleteClick
+            )
+        }
     }
 }
 

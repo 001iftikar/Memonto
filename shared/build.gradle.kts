@@ -78,7 +78,11 @@ kotlin {
 
             implementation(libs.koin.core)
             api(libs.koin.annotations)
+            implementation(libs.koin.compose.viewmodel)
             implementation(libs.kotlinx.serialization.json)
+
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.coil.compose)
 
             implementation(libs.androidx.room3.runtime)
             implementation(libs.androidx.sqlite.bundled)

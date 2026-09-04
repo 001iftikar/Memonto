@@ -1,10 +1,8 @@
 package com.iftikar.memonto.core.di
 
 import org.koin.core.annotation.KoinApplication
-import org.koin.dsl.KoinAppDeclaration
-import org.koin.plugin.module.dsl.startKoin
 
 @KoinApplication(
-    modules = [AppModule::class]
+    modules = [AppModule::class, ViewModelModule::class, RepositoryModule::class]
 )
 class AppKoin

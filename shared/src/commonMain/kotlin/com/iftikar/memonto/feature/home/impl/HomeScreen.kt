@@ -1,61 +1,107 @@
 package com.iftikar.memonto.feature.home.impl
 
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.retain.retain
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.iftikar.memonto.core.designsystem.component.card.NoteCard
+import com.iftikar.memonto.core.util.formatRelativeTime
+import memonto.shared.generated.resources.Res
 
 @Composable
 fun HomeScreen(
     listState: LazyListState,
+    viewModel: HomeViewModel,
+    showError: (String) -> Unit
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val currentTimeMillis by viewModel.currentTime.collectAsStateWithLifecycle()
+    val action = viewModel::onAction
+
+    LaunchedEffect(true) {
+        viewModel.event.collect { event ->
+            when (event) {
+                is HomeScreenEvent.ShowError -> {
+                    showError(event.error)
+                }
+            }
+        }
+    }
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        item {
-            NoteCard(
-                title = "Q3 OKR Strategy & Execution Plan",
-                description = "Finalizing the objectives for the upcoming quarter focusing on expansion into the EMEA market. Key metrics include increasing active daily users by" +
-                        " 15%ajshdashdkadskhasdhadhadhasdhkasjdhajdhkajdhahdajdhajdhajkdahhsdahdajdhahdhdsajhdajkdhaasdasdasdsaasdasdasddadasdadasdasdasdadadadadaddadasdadadadd" +
-                        "adasdadadadad" +
-                        "asdadsaddsadsaddsdasdskdjadjakda" +
-                        "asdhsdhashdgsadgahdgasjdgsahjda" +
-                        "adsashdgahsdashdghdjsdgasjhdadjds" +
-                        "asdasdadsa" +
-                        "asdadadsdasd" +
-                        "asdasdasdadas" +
-                        "asdasdasdsadsadasdadadadasdasdasdasd" +
-                        "adsadadadsdasdsadasdadasd" +
-                        "sadadsdasdadsadasd" +
-                        "sdasdasdasdasdasdasdasdasdasdasdasdasddddddddddddddddddddddddddddasddddddddddddddddddddddddddsaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-                        "asddddddddddddddddddddddddddddddddd" +
-                        "asddddddddddddddddddddddddddddd" +
-                        "aSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS" +
-                        "ASSSSSSSSSSSSSSSSSSSSSSSSSSS" +
-                        "ASSSSSSSSSS" +
-                        "k...",
-                timeText = "Updated 2 hours ago",
-                isPinned = true
-            )
-        }
-
-        // Note Item 2 (From your HTML/Image)
-        items(20) {
-            NoteCard(
-                title = "Component Library Audit",
-                description = "Reviewing the current state of our shared components JSON. Need to ensure all style_ keys are properly mapped to Tailwind utility classes. The focus is on...",
-                timeText = "Yesterday",
-                isPinned = false
-            )
+        if (state.isLoading) {
+            item {
+                Column(
+                    modifier = Modifier.fillParentMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else {
+            if (state.error != null) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = state.error ?: "Oops! Something went wrong.",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            } else {
+                if (state.notes.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = Res.getUri("drawable/Empty_Notes.png"),
+                                contentDescription = "Empty List, press plus to add notes",
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                } else {
+                    items(items = state.notes, key = { it.id }) { note ->
+                        val timeStampText = retain(note.updatedAt, currentTimeMillis) {
+                            formatRelativeTime(note.updatedAt, currentTimeMillis)
+                        }
+                        NoteCard(
+                            note = note,
+                            timeStampText = timeStampText,
+                            longPressedVisible = state.longPressedNotes.contains(note.id),
+                            onLongPressed = { action(HomeScreenAction.OnLongPressed(note.id)) },
+                            onActionPerform = action
+                        )
+                    }
+                }
+            }
         }
     }
 }

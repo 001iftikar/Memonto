@@ -2,7 +2,9 @@ package com.iftikar.memonto.core.di
 
 import androidx.room3.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import com.iftikar.memonto.core.local.dao.NoteDao
 import com.iftikar.memonto.core.local.NoteDatabase
+import com.iftikar.memonto.core.local.dao.UserDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import org.koin.core.annotation.Module
@@ -19,6 +21,18 @@ class AppModule {
         return builder
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
+            .fallbackToDestructiveMigration()
             .build()
     }
+
+    @Single
+    fun provideNoteDao(database: NoteDatabase): NoteDao {
+        return database.noteDao()
+    }
+
+    @Single
+    fun provideUserDao(database: NoteDatabase): UserDao {
+        return database.userDao()
+    }
+
 }

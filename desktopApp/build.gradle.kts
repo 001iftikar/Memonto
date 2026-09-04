@@ -4,11 +4,12 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.koin.compiler)
 }
 
 dependencies {
     implementation(project(":shared"))
-
+    implementation(libs.koin.core)
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
 

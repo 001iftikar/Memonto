@@ -11,11 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -25,6 +34,8 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.iftikar.memonto.core.designsystem.component.bar.MemontoTopAppBar
 import com.iftikar.memonto.core.designsystem.theme.MemontoTheme
+import com.iftikar.memonto.core.util.TimeOfDay
+import com.iftikar.memonto.core.util.getTimeOfDay
 import com.iftikar.memonto.feature.add_note.impl.navigation.addNoteEntryProvider
 import com.iftikar.memonto.feature.bottom_navigation.Add
 import com.iftikar.memonto.feature.bottom_navigation.BottomNav
@@ -32,19 +43,20 @@ import com.iftikar.memonto.feature.bottom_navigation.BottomNavigationAction
 import com.iftikar.memonto.feature.bottom_navigation.Home
 import com.iftikar.memonto.feature.bottom_navigation.MemontoBottomNavBar
 import com.iftikar.memonto.feature.bottom_navigation.Settings
+import com.iftikar.memonto.feature.global.GlobalViewModel
 import com.iftikar.memonto.feature.home.impl.navigation.homeEntryProvider
 import com.iftikar.memonto.feature.settings.impl.navigation.settingsEntryProvider
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App() {
-    MemontoTheme(
-        darkTheme = true
-    ) {
+    MemontoTheme {
         Navigation()
     }
 }
@@ -61,8 +73,22 @@ fun Navigation() {
         }
     }
     val backstack = rememberNavBackStack(config, Home)
+    val globalViewModel = koinViewModel<GlobalViewModel>()
+    val userNameState by globalViewModel.showUsernameState.collectAsStateWithLifecycle()
+    val currentTimeMillis by globalViewModel.currentTime.collectAsStateWithLifecycle()
+    val greet = when(getTimeOfDay(currentTimeMillis)) {
+        TimeOfDay.MORNING -> "Good Morning!"
+        TimeOfDay.AFTERNOON -> "Good Afternoon!"
+        TimeOfDay.EVENING -> "Good Evening!"
+        TimeOfDay.NIGHT -> "Are we not sleeping today?"
+    }
+
     val listState = rememberLazyListState()
     val hazeState = retain { HazeState() }
+    val snackbarHostState = retain { SnackbarHostState() }
+
+    // 2. Create a coroutine scope to launch the animation
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -73,7 +99,25 @@ fun Navigation() {
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState),
-            topBar = { MemontoTopAppBar() }
+            topBar = { MemontoTopAppBar(
+                isLoading = userNameState.isLoading,
+                user = userNameState.user,
+                greet = greet
+            ) },
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 120.dp)
+                ) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
         ) { innerPadding ->
             NavDisplay(
                 modifier = Modifier.padding(innerPadding),
@@ -84,9 +128,25 @@ fun Navigation() {
                     rememberViewModelStoreNavEntryDecorator()
                 ),
                 entryProvider = entryProvider {
-                    homeEntryProvider(listState = listState, backStack = backstack)
+                    homeEntryProvider(listState = listState, backStack = backstack, showError = {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = it,
+                                duration = SnackbarDuration.Long,
+                                withDismissAction = true
+                            )
+                        }
+                    })
                     settingsEntryProvider()
-                    addNoteEntryProvider(backstack)
+                    addNoteEntryProvider(backStack = backstack, showError = {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = it,
+                                duration = SnackbarDuration.Long,
+                                withDismissAction = true
+                            )
+                        }
+                    })
                 },
                 transitionSpec = {
                     if (backstack.lastOrNull() == Add) {
@@ -128,11 +188,12 @@ fun Navigation() {
             )
         }
         if (backstack.lastOrNull() != Add) {
+            val currentRoute = backstack.lastOrNull()
             MemontoBottomNavBar(
                 listState = listState,
                 hazeState = hazeState,
+                currentRoute = (currentRoute?: Home) as BottomNav,
                 onNavigation = { action ->
-                    val currentRoute = backstack.lastOrNull()
                     when (action) {
                         BottomNavigationAction.OnHomeClick -> {
                             if (currentRoute !is Home) {

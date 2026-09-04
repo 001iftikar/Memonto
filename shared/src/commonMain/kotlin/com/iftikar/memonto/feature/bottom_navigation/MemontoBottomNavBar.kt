@@ -47,6 +47,7 @@ fun MemontoBottomNavBar(
     listState: LazyListState,
     hazeState: HazeState,
     onNavigation: (BottomNavigationAction) -> Unit,
+    currentRoute: BottomNav,
     modifier: Modifier = Modifier
 ) {
     var isScrollingUp by remember { mutableStateOf(true) }
@@ -109,7 +110,7 @@ fun MemontoBottomNavBar(
                         Icon(
                             Icons.Outlined.Description,
                             contentDescription = "Notes",
-                            tint = MaterialTheme.colorScheme.tertiary
+                            tint = if (currentRoute == Home) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
                         )
                     }
 
@@ -122,7 +123,7 @@ fun MemontoBottomNavBar(
                         Icon(
                             Icons.Outlined.Settings,
                             contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.tertiary
+                            tint = if (currentRoute == Settings) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }
