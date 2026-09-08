@@ -9,7 +9,7 @@ import com.iftikar.memonto.core.model.User
  */
 @Entity(tableName = "user")
 data class UserEntity(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     val id: Long = 0,
     val name: String
 )

@@ -83,7 +83,8 @@ fun Navigation() {
         TimeOfDay.NIGHT -> "Are we not sleeping today?"
     }
 
-    val listState = rememberLazyListState()
+    val homeListState = rememberLazyListState()
+    val settingsListState = rememberLazyListState()
     val hazeState = retain { HazeState() }
     val snackbarHostState = retain { SnackbarHostState() }
 
@@ -128,7 +129,7 @@ fun Navigation() {
                     rememberViewModelStoreNavEntryDecorator()
                 ),
                 entryProvider = entryProvider {
-                    homeEntryProvider(listState = listState, backStack = backstack, showError = {
+                    homeEntryProvider(listState = homeListState, backStack = backstack, showError = {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
                                 message = it,
@@ -137,7 +138,12 @@ fun Navigation() {
                             )
                         }
                     })
-                    settingsEntryProvider()
+                    settingsEntryProvider(
+                        listState = settingsListState,
+                        isUsernameFinding = { userNameState.isLoading },
+                        userName = { userNameState.user?.name },
+                        onUserNameChange = globalViewModel::changeUserNameFromSettings,
+                    )
                     addNoteEntryProvider(backStack = backstack, showError = {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
@@ -190,7 +196,11 @@ fun Navigation() {
         if (backstack.lastOrNull() != Add) {
             val currentRoute = backstack.lastOrNull()
             MemontoBottomNavBar(
-                listState = listState,
+                listState = when(currentRoute) {
+                    Home -> homeListState
+                Settings -> settingsListState
+                    else -> rememberLazyListState()
+                },
                 hazeState = hazeState,
                 currentRoute = (currentRoute?: Home) as BottomNav,
                 onNavigation = { action ->

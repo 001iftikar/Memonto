@@ -27,6 +27,9 @@ class HomeViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeScreenState())
     val state = _state.asStateFlow()
+
+    private val _editNoteState = MutableStateFlow(EditNoteState())
+    val editNoteState = _editNoteState.asStateFlow()
     private val _event: Channel<HomeScreenEvent> = Channel()
     val event = _event.receiveAsFlow()
 
@@ -62,6 +65,7 @@ class HomeViewModel(
             is HomeScreenAction.OnDeletePress -> deleteNote(action.id)
             is HomeScreenAction.OnPinPress -> pinNote(action.id)
             is HomeScreenAction.OnUnPinPress -> unPinNote(action.id)
+            is HomeScreenAction.OnEditPress -> TODO()
         }
     }
 

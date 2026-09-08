@@ -8,7 +8,7 @@ import com.iftikar.memonto.core.local.dao.UserDao
 import com.iftikar.memonto.core.local.model.NoteEntity
 import com.iftikar.memonto.core.local.model.UserEntity
 
-@Database(entities = [NoteEntity::class, UserEntity::class], version = 2, exportSchema = true)
+@Database(entities = [NoteEntity::class, UserEntity::class], version = 3, exportSchema = true)
 @ConstructedBy(NoteDatabaseConstructor::class)
 abstract class NoteDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao

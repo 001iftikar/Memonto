@@ -1,5 +1,6 @@
 package com.iftikar.memonto.feature.home.impl
 
+import androidx.compose.foundation.content.MediaType.Companion.Text
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,11 +19,12 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.iftikar.memonto.core.designsystem.component.card.NoteCard
+import com.iftikar.memonto.core.designsystem.theme.LocalSpacing
 import com.iftikar.memonto.core.util.formatRelativeTime
+import com.iftikar.memonto.feature.home.components.EditNoteComponent
 import memonto.shared.generated.resources.Res
 
 @Composable
@@ -31,7 +33,9 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     showError: (String) -> Unit
 ) {
+    val spacing = LocalSpacing.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val editNoteState by viewModel.editNoteState.collectAsStateWithLifecycle()
     val currentTimeMillis by viewModel.currentTime.collectAsStateWithLifecycle()
     val action = viewModel::onAction
 
@@ -48,7 +52,7 @@ fun HomeScreen(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = spacing.screenHorizontalPadding)
     ) {
         if (state.isLoading) {
             item {
@@ -104,4 +108,9 @@ fun HomeScreen(
             }
         }
     }
+
+    EditNoteComponent(
+        state = editNoteState,
+        action = {}
+    )
 }

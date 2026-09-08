@@ -45,6 +45,12 @@ class GlobalViewModel(
             }
         }
     }
+
+    fun changeUserNameFromSettings(userName: String) {
+        viewModelScope.launch {
+            utilRepository.saveUser(userName)
+        }
+    }
 }
 
 

@@ -9,11 +9,24 @@ data class HomeScreenState(
     val longPressedNotes: Set<Long> = emptySet(),
 )
 
+data class EditNoteState(
+    val title: String = "",
+    val relatedTo: String = "",
+    val body: String = ""
+)
+
 sealed interface HomeScreenAction {
     data class OnLongPressed(val id: Long) : HomeScreenAction
     data class OnDeletePress(val id: Long) : HomeScreenAction
     data class OnPinPress(val id: Long) : HomeScreenAction
     data class OnUnPinPress(val id: Long) : HomeScreenAction
+    data class OnEditPress(val id: Long) : HomeScreenAction
+}
+
+sealed interface EditNoteAction {
+    data class OnTitleChange(val tittle: String) : EditNoteAction
+    data class OnRelatedToChange(val relatedTo: String?) : EditNoteAction
+    data class OnBodyChange(val body: String) : EditNoteAction
 }
 
 sealed interface HomeScreenEvent {
