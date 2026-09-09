@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface LocalNoteRepository {
     fun getNotes(): Flow<Result<List<Note>, LocalError>>
+    fun getNoteById(id: Long): Flow<Result<Note, LocalError>>
     suspend fun saveNote(title: String, body: String, relatedTo: String?): EmptyResult<LocalError>
     suspend fun deleteNoteById(id: Long): EmptyResult<LocalError>
     suspend fun pinNote(id: Long) : EmptyResult<LocalError>

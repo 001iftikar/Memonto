@@ -3,9 +3,7 @@ package com.iftikar.memonto.feature.home.impl
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -37,6 +35,7 @@ import memonto.shared.generated.resources.Res
 fun HomeScreen(
     listState: LazyListState,
     viewModel: HomeViewModel,
+    onNoteClick: (Long) -> Unit,
     showError: (String) -> Unit
 ) {
     val spacing = LocalSpacing.current
@@ -110,7 +109,8 @@ fun HomeScreen(
                             timeStampText = timeStampText,
                             longPressedVisible = state.longPressedNotes.contains(note.id),
                             onLongPressed = { action(HomeScreenAction.OnLongPressed(note.id)) },
-                            onActionPerform = action
+                            onActionPerform = action,
+                            onClick = { onNoteClick(note.id) }
                         )
                     }
                 }

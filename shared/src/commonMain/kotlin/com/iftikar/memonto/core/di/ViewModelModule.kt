@@ -4,8 +4,10 @@ import com.iftikar.memonto.core.domain.repository.LocalNoteRepository
 import com.iftikar.memonto.core.domain.repository.ThemeRepository
 import com.iftikar.memonto.core.domain.repository.UtilRepository
 import com.iftikar.memonto.feature.add_note.impl.AddNoteViewModel
+import com.iftikar.memonto.feature.edit_note.impl.EditNoteViewModel
 import com.iftikar.memonto.feature.global.GlobalViewModel
 import com.iftikar.memonto.feature.home.impl.HomeViewModel
+import com.iftikar.memonto.feature.note_details.impl.NoteDetailsViewModel
 import com.iftikar.memonto.feature.settings.impl.SettingsViewModel
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.annotation.Module
@@ -23,4 +25,10 @@ class ViewModelModule {
 
     @KoinViewModel
     fun settingsViewModel(repo: ThemeRepository) = SettingsViewModel(repo)
+
+    @KoinViewModel
+    fun noteDetailsViewModel(repo: LocalNoteRepository) = NoteDetailsViewModel(repo)
+
+    @KoinViewModel
+    fun editNoteViewModel(repo: LocalNoteRepository) = EditNoteViewModel(repo)
 }

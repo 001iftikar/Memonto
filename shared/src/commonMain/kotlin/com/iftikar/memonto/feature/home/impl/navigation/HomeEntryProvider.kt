@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.NavKey
 import com.iftikar.memonto.feature.bottom_navigation.Home
 import com.iftikar.memonto.feature.home.impl.HomeScreen
 import com.iftikar.memonto.feature.home.impl.HomeViewModel
+import com.iftikar.memonto.feature.note_details.api.NoteDetailKey
 import org.koin.compose.viewmodel.koinViewModel
 
 fun EntryProviderScope<NavKey>.homeEntryProvider(
@@ -14,12 +15,13 @@ fun EntryProviderScope<NavKey>.homeEntryProvider(
     showError: (String) -> Unit,
     backStack: NavBackStack<NavKey>
 ) {
-    entry<Home> {
+    entry<Home> { _ ->
         val viewModel = koinViewModel<HomeViewModel>()
         HomeScreen(
             listState = listState,
             viewModel = viewModel,
-            showError = showError
+            showError = showError,
+            onNoteClick = {backStack.add(NoteDetailKey(it))}
         )
     }
 }

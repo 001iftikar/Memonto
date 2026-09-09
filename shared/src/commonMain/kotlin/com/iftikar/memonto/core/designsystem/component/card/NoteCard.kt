@@ -50,6 +50,7 @@ fun NoteCard(
     note: Note,
     timeStampText: String,
     longPressedVisible: Boolean,
+    onClick: () -> Unit,
     onLongPressed: () -> Unit,
     onActionPerform: (HomeScreenAction) -> Unit
 ) {
@@ -67,7 +68,7 @@ fun NoteCard(
                 .weight(1f)
                 .clip(RoundedCornerShape(16.dp))
                 .combinedClickable(
-                    onClick = { /* Normal click */ },
+                    onClick = onClick,
                     onLongClick = onLongPressed
                 ),
             shape = RoundedCornerShape(16.dp),

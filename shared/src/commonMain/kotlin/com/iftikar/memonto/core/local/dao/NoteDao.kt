@@ -22,7 +22,7 @@ interface NoteDao {
     fun observeNotes(): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE id = :id")
-    suspend fun getSingleNoteById(id: Long): NoteEntity?
+    fun getSingleNoteById(id: Long): Flow<NoteEntity?>
 
     @Upsert
     suspend fun saveNote(note: NoteEntity)

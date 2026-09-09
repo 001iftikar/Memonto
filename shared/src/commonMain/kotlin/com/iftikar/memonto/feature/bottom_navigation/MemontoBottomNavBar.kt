@@ -30,7 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -50,7 +50,7 @@ fun MemontoBottomNavBar(
     currentRoute: BottomNav,
     modifier: Modifier = Modifier
 ) {
-    var isScrollingUp by remember { mutableStateOf(true) }
+    var isScrollingUp by retain { mutableStateOf(true) }
     LaunchedEffect(listState) {
         var previousIndex = listState.firstVisibleItemIndex
         var previousScrollOffset = listState.firstVisibleItemScrollOffset

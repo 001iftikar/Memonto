@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -26,6 +27,24 @@ class LocalNoteRepositoryImpl(
             .map { entityList ->
                 val notes = entityList.map { it.asExternalModel() }
                 Result.Success(notes) as Result<List<Note>, LocalError>
+            }
+            .catch { ex ->
+                ex.printStackTrace()
+                when (ex) {
+                    is SQLiteException -> emit(Result.Error(LocalError.DATABASE_ERROR))
+                    else -> emit(Result.Error(LocalError.UNKNOWN))
+                }
+            }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override fun getNoteById(id: Long): Flow<Result<Note, LocalError>> {
+        return noteDao.getSingleNoteById(id)
+            .map {
+                if (it == null) {
+                    Result.Error(LocalError.NOT_FOUND)
+                } else
+                Result.Success(it.asExternalModel())
             }
             .catch { ex ->
                 ex.printStackTrace()
@@ -63,9 +82,8 @@ class LocalNoteRepositoryImpl(
 
     override suspend fun deleteNoteById(id: Long): EmptyResult<LocalError> = withContext(Dispatchers.IO) {
         try {
-            val noteToDelete = noteDao.getSingleNoteById(id) ?: return@withContext Result.Error(
-                LocalError.NOT_FOUND
-            )
+            val noteToDelete = noteDao.getSingleNoteById(id).firstOrNull() ?: return@withContext Result.Error(
+                LocalError.NOT_FOUND)
             noteDao.deleteNote(noteToDelete)
             Result.Success(Unit)
         } catch (ex: SQLiteException) {
@@ -80,9 +98,8 @@ class LocalNoteRepositoryImpl(
     override suspend fun pinNote(id: Long): EmptyResult<LocalError> = withContext(Dispatchers.IO) {
         try {
             val now = Clock.System.now().toEpochMilliseconds()
-            val noteToPin = noteDao.getSingleNoteById(id) ?: return@withContext Result.Error(
-                LocalError.NOT_FOUND
-            )
+            val noteToPin = noteDao.getSingleNoteById(id).firstOrNull() ?: return@withContext Result.Error(
+                LocalError.NOT_FOUND)
             noteDao.saveNote(noteToPin.copy(pinnedAt = now))
             Result.Success(Unit)
         } catch (ex: SQLiteException) {
@@ -96,10 +113,9 @@ class LocalNoteRepositoryImpl(
 
     override suspend fun unPinNote(id: Long): EmptyResult<LocalError> = withContext(Dispatchers.IO) {
         try {
-            val noteToPin = noteDao.getSingleNoteById(id) ?: return@withContext Result.Error(
-                LocalError.NOT_FOUND
-            )
-            noteDao.saveNote(noteToPin.copy(pinnedAt = null))
+            val noteToUnPin = noteDao.getSingleNoteById(id).firstOrNull() ?: return@withContext Result.Error(
+                LocalError.NOT_FOUND)
+            noteDao.saveNote(noteToUnPin.copy(pinnedAt = null))
             Result.Success(Unit)
         } catch (ex: SQLiteException) {
             ex.printStackTrace()
@@ -117,7 +133,7 @@ class LocalNoteRepositoryImpl(
         relatedTo: String?
     ): EmptyResult<LocalError> = withContext(Dispatchers.IO) {
         try {
-            val noteToUpdate = noteDao.getSingleNoteById(id) ?: return@withContext Result.Error(
+            val noteToUpdate = noteDao.getSingleNoteById(id).firstOrNull() ?: return@withContext Result.Error(
                 LocalError.NOT_FOUND)
             val now = Clock.System.now().toEpochMilliseconds()
             noteDao.saveNote(noteToUpdate.copy(

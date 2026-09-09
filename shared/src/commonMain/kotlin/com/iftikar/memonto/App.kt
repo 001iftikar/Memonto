@@ -46,8 +46,12 @@ import com.iftikar.memonto.feature.bottom_navigation.BottomNavigationAction
 import com.iftikar.memonto.feature.bottom_navigation.Home
 import com.iftikar.memonto.feature.bottom_navigation.MemontoBottomNavBar
 import com.iftikar.memonto.feature.bottom_navigation.Settings
+import com.iftikar.memonto.feature.edit_note.api.EditNoteKey
+import com.iftikar.memonto.feature.edit_note.impl.navigation.editNoteEntryProvider
 import com.iftikar.memonto.feature.global.GlobalViewModel
 import com.iftikar.memonto.feature.home.impl.navigation.homeEntryProvider
+import com.iftikar.memonto.feature.note_details.api.NoteDetailKey
+import com.iftikar.memonto.feature.note_details.impl.navigation.noteDetailsEntyProvider
 import com.iftikar.memonto.feature.settings.impl.navigation.settingsEntryProvider
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -80,7 +84,8 @@ fun Navigation(
         serializersModule = SerializersModule {
             polymorphic(NavKey::class) {
                 subclassesOfSealed<BottomNav>()
-//                subclass(HomeNavKey::class, HomeNavKey.serializer())
+                subclass(NoteDetailKey::class, NoteDetailKey.serializer())
+                subclass(EditNoteKey::class, EditNoteKey.serializer())
             }
         }
     }
@@ -167,6 +172,13 @@ fun Navigation(
                         showError = {
                             showErrorSnackbar(it)
                         })
+                    noteDetailsEntyProvider(backStack = backstack)
+                    editNoteEntryProvider(
+                        backStack = backstack,
+                        onShowError = {
+                            showErrorSnackbar(it)
+                        }
+                    )
                     settingsEntryProvider(
                         listState = settingsListState,
                         isUsernameFinding = { userNameState.isLoading },
@@ -217,16 +229,17 @@ fun Navigation(
                 }
             )
         }
-        if (backstack.lastOrNull() != Add) {
-            val currentRoute = backstack.lastOrNull()
+        val currentRoute = backstack.lastOrNull()
+
+        if (currentRoute is BottomNav && currentRoute != Add) {
+
             MemontoBottomNavBar(
                 listState = when (currentRoute) {
                     Home -> homeListState
                     Settings -> settingsListState
-                    else -> rememberLazyListState()
                 },
                 hazeState = hazeState,
-                currentRoute = (currentRoute ?: Home) as BottomNav,
+                currentRoute = currentRoute,
                 onNavigation = { action ->
                     when (action) {
                         BottomNavigationAction.OnHomeClick -> {
@@ -235,13 +248,11 @@ fun Navigation(
                                 backstack.add(Home)
                             }
                         }
-
                         BottomNavigationAction.OnAddClick -> {
                             if (currentRoute !is Add) {
                                 backstack.add(Add)
                             }
                         }
-
                         BottomNavigationAction.OnSettingsClick -> {
                             if (currentRoute !is Settings) {
                                 backstack.add(Settings)
