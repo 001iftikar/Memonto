@@ -14,6 +14,9 @@ fun initKoinDesktop() {
                 single {
                     getDatabaseBuilder()
                 }
+                single<DataStore<Preferences>> {
+                    createDataStore()
+                }
             }
         )
     }

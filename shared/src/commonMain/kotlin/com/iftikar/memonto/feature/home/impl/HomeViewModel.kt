@@ -65,7 +65,26 @@ class HomeViewModel(
             is HomeScreenAction.OnDeletePress -> deleteNote(action.id)
             is HomeScreenAction.OnPinPress -> pinNote(action.id)
             is HomeScreenAction.OnUnPinPress -> unPinNote(action.id)
-            is HomeScreenAction.OnEditPress -> TODO()
+            is HomeScreenAction.OnEditPress -> {
+                val noteToUpdate = _state.value.notes.find { it.id == action.id } ?: throw RuntimeException("Note not found") // intentional crash in case id is mismatched
+                _editNoteState.update { it.copy(id = action.id, title = noteToUpdate.title, relatedTo = noteToUpdate.relationTo ?: "", body = noteToUpdate.body) }
+                _state.update { it.copy(openEditNote = true) }
+            }
+        }
+    }
+
+    fun onEditNoteAction(action: EditNoteAction) {
+        when(action) {
+            is EditNoteAction.OnBodyChange -> _editNoteState.update { it.copy(body = action.body) }
+            is EditNoteAction.OnCancel -> {
+                _state.update { it.copy(openEditNote = false) }
+                onAction(HomeScreenAction.OnLongPressed(action.id))
+            }
+            is EditNoteAction.OnRelatedToChange -> _editNoteState.update { it.copy(relatedTo = action.relatedTo ?: "") }
+            is EditNoteAction.OnSaveClick -> {
+                onUpdateNote(action.id)
+            }
+            is EditNoteAction.OnTitleChange -> _editNoteState.update { it.copy(title = action.tittle) }
         }
     }
 
@@ -88,6 +107,30 @@ class HomeViewModel(
         }
     }
 
+    private fun onUpdateNote(id: Long) {
+        viewModelScope.launch {
+            val editNoteStateCurrent = _editNoteState.value
+            localNoteRepository.updateNote(
+                id = id,
+                title = editNoteStateCurrent.title.trim(),
+                body = editNoteStateCurrent.body.trimEnd(),
+                relatedTo = editNoteStateCurrent.relatedTo.trim().ifEmpty { null }
+            ).onSuccess {
+                onAction(HomeScreenAction.OnLongPressed(id))
+                _state.update { it.copy(openEditNote = false) }
+            }.onError { ex ->
+                when (ex) {
+                    LocalError.NOT_FOUND -> {
+                        _event.send(HomeScreenEvent.ShowError("Note not found to update"))
+                    }
+
+                    else -> {
+                        _event.send(HomeScreenEvent.ShowError("Oops! Something went wrong."))
+                    }
+                }
+            }
+        }
+    }
     private fun deleteNote(id: Long) {
         viewModelScope.launch {
             localNoteRepository.deleteNoteById(id).onSuccess {

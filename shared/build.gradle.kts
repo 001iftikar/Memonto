@@ -86,6 +86,10 @@ kotlin {
 
             implementation(libs.androidx.room3.runtime)
             implementation(libs.androidx.sqlite.bundled)
+
+            implementation(libs.androidx.datastore.core)
+            // The Preferences DataStore library
+            implementation(libs.androidx.datastore.preferences.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -12,7 +12,8 @@ fun EntryProviderScope<NavKey>.settingsEntryProvider(
     listState: LazyListState,
     isUsernameFinding: () -> Boolean,
     userName: () -> String?,
-    onUserNameChange: (String) -> Unit
+    onUserNameChange: (String) -> Unit,
+    isOnDarkTheme: () -> Boolean?
 ) {
     entry<Settings> {
         val viewModel = koinViewModel<SettingsViewModel>()
@@ -21,7 +22,8 @@ fun EntryProviderScope<NavKey>.settingsEntryProvider(
             listState = listState,
             isUsernameFinding = isUsernameFinding(),
             userName = userName(),
-            onUserNameSave = onUserNameChange
+            onUserNameSave = onUserNameChange,
+            isOnDarkTheme = isOnDarkTheme()
         )
     }
 }

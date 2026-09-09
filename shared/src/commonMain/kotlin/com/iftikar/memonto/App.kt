@@ -6,6 +6,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,8 +20,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -48,6 +51,7 @@ import com.iftikar.memonto.feature.home.impl.navigation.homeEntryProvider
 import com.iftikar.memonto.feature.settings.impl.navigation.settingsEntryProvider
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
@@ -56,14 +60,22 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App() {
-    MemontoTheme {
-        Navigation()
+    val globalViewModel = koinViewModel<GlobalViewModel>()
+    val isDarkTheme by globalViewModel.isOnDarkTheme.collectAsStateWithLifecycle()
+    MemontoTheme(
+        darkTheme = isDarkTheme ?: isSystemInDarkTheme()
+    ) {
+        Navigation(
+            globalViewModel = globalViewModel
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSerializationApi::class)
 @Composable
-fun Navigation() {
+fun Navigation(
+    globalViewModel: GlobalViewModel
+) {
     val config = SavedStateConfiguration {
         serializersModule = SerializersModule {
             polymorphic(NavKey::class) {
@@ -73,23 +85,41 @@ fun Navigation() {
         }
     }
     val backstack = rememberNavBackStack(config, Home)
-    val globalViewModel = koinViewModel<GlobalViewModel>()
     val userNameState by globalViewModel.showUsernameState.collectAsStateWithLifecycle()
     val currentTimeMillis by globalViewModel.currentTime.collectAsStateWithLifecycle()
-    val greet = when(getTimeOfDay(currentTimeMillis)) {
+    val greet = when (getTimeOfDay(currentTimeMillis)) {
         TimeOfDay.MORNING -> "Good Morning!"
         TimeOfDay.AFTERNOON -> "Good Afternoon!"
         TimeOfDay.EVENING -> "Good Evening!"
         TimeOfDay.NIGHT -> "Are we not sleeping today?"
     }
+    val isOnDarkTheme by globalViewModel.isOnDarkTheme.collectAsStateWithLifecycle()
 
     val homeListState = rememberLazyListState()
     val settingsListState = rememberLazyListState()
     val hazeState = retain { HazeState() }
-    val snackbarHostState = retain { SnackbarHostState() }
 
-    // 2. Create a coroutine scope to launch the animation
+    var snackbarJob by retain { mutableStateOf<Job?>(null) }
+
+    val snackbarHostState = retain {
+        SnackbarHostState()
+    }
+
     val coroutineScope = rememberCoroutineScope()
+
+    val showErrorSnackbar = { message: String ->
+        snackbarJob?.cancel()
+
+        snackbarHostState.currentSnackbarData?.dismiss()
+
+        snackbarJob = coroutineScope.launch {
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Long,
+                withDismissAction = true
+            )
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -100,11 +130,13 @@ fun Navigation() {
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState),
-            topBar = { MemontoTopAppBar(
-                isLoading = userNameState.isLoading,
-                user = userNameState.user,
-                greet = greet
-            ) },
+            topBar = {
+                MemontoTopAppBar(
+                    isLoading = userNameState.isLoading,
+                    user = userNameState.user,
+                    greet = greet
+                )
+            },
             snackbarHost = {
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -129,29 +161,21 @@ fun Navigation() {
                     rememberViewModelStoreNavEntryDecorator()
                 ),
                 entryProvider = entryProvider {
-                    homeEntryProvider(listState = homeListState, backStack = backstack, showError = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = it,
-                                duration = SnackbarDuration.Long,
-                                withDismissAction = true
-                            )
-                        }
-                    })
+                    homeEntryProvider(
+                        listState = homeListState,
+                        backStack = backstack,
+                        showError = {
+                            showErrorSnackbar(it)
+                        })
                     settingsEntryProvider(
                         listState = settingsListState,
                         isUsernameFinding = { userNameState.isLoading },
                         userName = { userNameState.user?.name },
                         onUserNameChange = globalViewModel::changeUserNameFromSettings,
+                        isOnDarkTheme = { isOnDarkTheme },
                     )
                     addNoteEntryProvider(backStack = backstack, showError = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = it,
-                                duration = SnackbarDuration.Long,
-                                withDismissAction = true
-                            )
-                        }
+                        showErrorSnackbar(it)
                     })
                 },
                 transitionSpec = {
@@ -196,13 +220,13 @@ fun Navigation() {
         if (backstack.lastOrNull() != Add) {
             val currentRoute = backstack.lastOrNull()
             MemontoBottomNavBar(
-                listState = when(currentRoute) {
+                listState = when (currentRoute) {
                     Home -> homeListState
-                Settings -> settingsListState
+                    Settings -> settingsListState
                     else -> rememberLazyListState()
                 },
                 hazeState = hazeState,
-                currentRoute = (currentRoute?: Home) as BottomNav,
+                currentRoute = (currentRoute ?: Home) as BottomNav,
                 onNavigation = { action ->
                     when (action) {
                         BottomNavigationAction.OnHomeClick -> {

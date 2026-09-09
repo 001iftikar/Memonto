@@ -109,6 +109,32 @@ class LocalNoteRepositoryImpl(
             Result.Error(LocalError.UNKNOWN)
         }
     }
+
+    override suspend fun updateNote(
+        id: Long,
+        title: String,
+        body: String,
+        relatedTo: String?
+    ): EmptyResult<LocalError> = withContext(Dispatchers.IO) {
+        try {
+            val noteToUpdate = noteDao.getSingleNoteById(id) ?: return@withContext Result.Error(
+                LocalError.NOT_FOUND)
+            val now = Clock.System.now().toEpochMilliseconds()
+            noteDao.saveNote(noteToUpdate.copy(
+                title = title,
+                relationTo = relatedTo,
+                body = body,
+                updatedAt = now
+            ))
+            Result.Success(Unit)
+        } catch (ex: SQLiteException) {
+            ex.printStackTrace()
+            Result.Error(LocalError.STORAGE_FULL)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            Result.Error(LocalError.UNKNOWN)
+        }
+    }
 }
 
 

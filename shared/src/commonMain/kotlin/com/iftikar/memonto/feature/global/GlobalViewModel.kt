@@ -2,6 +2,7 @@ package com.iftikar.memonto.feature.global
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.iftikar.memonto.core.domain.repository.ThemeRepository
 import com.iftikar.memonto.core.domain.repository.UtilRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +19,8 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class GlobalViewModel(
-    private val utilRepository: UtilRepository
+    private val utilRepository: UtilRepository,
+    private val themeRepository: ThemeRepository
 ) : ViewModel() {
     private val _showUsernameState = MutableStateFlow(ShowUserNameState())
     val showUsernameState = _showUsernameState.asStateFlow()
@@ -33,6 +35,13 @@ class GlobalViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = Clock.System.now().toEpochMilliseconds()
     )
+
+    val isOnDarkTheme: StateFlow<Boolean?> = themeRepository.isInDarkTheme()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
 
     init {
         viewModelScope.launch {

@@ -188,7 +188,7 @@ fun NoteCard(
                     { onActionPerform(HomeScreenAction.OnUnPinPress(note.id)); onLongPressed() }
                 },
                 onDeleteClick = { onActionPerform(HomeScreenAction.OnDeletePress(note.id)) },
-                onEditClick = {}
+                onEditClick = {onActionPerform(HomeScreenAction.OnEditPress(note.id))}
             )
         }
     }

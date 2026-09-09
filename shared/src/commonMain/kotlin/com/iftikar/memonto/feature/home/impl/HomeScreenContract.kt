@@ -7,9 +7,11 @@ data class HomeScreenState(
     val error: String? = null,
     val isLoading: Boolean = false,
     val longPressedNotes: Set<Long> = emptySet(),
+    val openEditNote: Boolean = false
 )
 
 data class EditNoteState(
+    val id: Long? = null,
     val title: String = "",
     val relatedTo: String = "",
     val body: String = ""
@@ -27,6 +29,8 @@ sealed interface EditNoteAction {
     data class OnTitleChange(val tittle: String) : EditNoteAction
     data class OnRelatedToChange(val relatedTo: String?) : EditNoteAction
     data class OnBodyChange(val body: String) : EditNoteAction
+    data class OnSaveClick(val id: Long) : EditNoteAction
+    data class OnCancel(val id: Long) : EditNoteAction
 }
 
 sealed interface HomeScreenEvent {

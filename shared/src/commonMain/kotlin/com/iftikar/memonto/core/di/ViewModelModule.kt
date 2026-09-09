@@ -1,6 +1,7 @@
 package com.iftikar.memonto.core.di
 
 import com.iftikar.memonto.core.domain.repository.LocalNoteRepository
+import com.iftikar.memonto.core.domain.repository.ThemeRepository
 import com.iftikar.memonto.core.domain.repository.UtilRepository
 import com.iftikar.memonto.feature.add_note.impl.AddNoteViewModel
 import com.iftikar.memonto.feature.global.GlobalViewModel
@@ -18,8 +19,8 @@ class ViewModelModule {
     fun homeViewModel(repo: LocalNoteRepository) = HomeViewModel(repo)
 
     @KoinViewModel
-    fun globalViewModel(repo: UtilRepository) = GlobalViewModel(repo)
+    fun globalViewModel(utilRepo: UtilRepository, themeRepo: ThemeRepository) = GlobalViewModel(utilRepo, themeRepo)
 
     @KoinViewModel
-    fun settingsViewModel() = SettingsViewModel()
+    fun settingsViewModel(repo: ThemeRepository) = SettingsViewModel(repo)
 }

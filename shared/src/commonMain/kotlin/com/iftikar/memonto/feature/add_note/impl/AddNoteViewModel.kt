@@ -39,7 +39,7 @@ class AddNoteViewModel(
         viewModelScope.launch {
             localNoteRepository.saveNote(
                 title = currentState.title.trim(),
-                body = currentState.body,
+                body = currentState.body.trimEnd(),
                 relatedTo = currentState.relatedTo?.trim()
             ).onSuccess {
                 _event.send(AddNoteEvent.OnSuccess)

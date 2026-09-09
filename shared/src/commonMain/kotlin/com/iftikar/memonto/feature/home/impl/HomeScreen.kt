@@ -1,10 +1,11 @@
 package com.iftikar.memonto.feature.home.impl
 
-import androidx.compose.foundation.content.MediaType.Companion.Text
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -18,13 +19,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.iftikar.memonto.core.designsystem.component.card.NoteCard
 import com.iftikar.memonto.core.designsystem.theme.LocalSpacing
 import com.iftikar.memonto.core.util.formatRelativeTime
 import com.iftikar.memonto.feature.home.components.EditNoteComponent
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.flow.collectLatest
 import memonto.shared.generated.resources.Res
 
 @Composable
@@ -34,13 +40,15 @@ fun HomeScreen(
     showError: (String) -> Unit
 ) {
     val spacing = LocalSpacing.current
+    val hazeState = retain { HazeState() }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val editNoteState by viewModel.editNoteState.collectAsStateWithLifecycle()
     val currentTimeMillis by viewModel.currentTime.collectAsStateWithLifecycle()
     val action = viewModel::onAction
+    val editNoteAction = viewModel::onEditNoteAction
 
     LaunchedEffect(true) {
-        viewModel.event.collect { event ->
+        viewModel.event.collectLatest { event ->
             when (event) {
                 is HomeScreenEvent.ShowError -> {
                     showError(event.error)
@@ -53,6 +61,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = spacing.screenHorizontalPadding)
+            .hazeSource(hazeState)
     ) {
         if (state.isLoading) {
             item {
@@ -109,8 +118,27 @@ fun HomeScreen(
         }
     }
 
-    EditNoteComponent(
-        state = editNoteState,
-        action = {}
-    )
+    if (state.openEditNote) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent().changes.forEach {
+                                it.consume()
+                            }
+                        }
+                    }
+                }
+                .padding(bottom = 100.dp)
+        ) {
+            EditNoteComponent(
+                state = editNoteState,
+                action = editNoteAction,
+                hazeState = hazeState,
+                noteId = editNoteState.id!! // intentional crash if id is not passed somehow
+            )
+        }
+    }
 }

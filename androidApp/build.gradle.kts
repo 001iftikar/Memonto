@@ -13,10 +13,11 @@ kotlin {
 }
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.androidx.datastore.core)
     implementation(libs.koin.android)
     implementation(libs.androidx.room3.runtime)
     implementation(libs.androidx.activity.compose)
-
+    implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 }

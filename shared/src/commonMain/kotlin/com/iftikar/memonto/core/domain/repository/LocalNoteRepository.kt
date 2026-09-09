@@ -12,4 +12,5 @@ interface LocalNoteRepository {
     suspend fun deleteNoteById(id: Long): EmptyResult<LocalError>
     suspend fun pinNote(id: Long) : EmptyResult<LocalError>
     suspend fun unPinNote(id: Long) : EmptyResult<LocalError>
+    suspend fun  updateNote(id: Long, title: String, body: String, relatedTo: String?): EmptyResult<LocalError>
 }

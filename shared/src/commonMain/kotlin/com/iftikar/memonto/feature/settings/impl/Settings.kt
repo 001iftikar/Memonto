@@ -22,9 +22,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iftikar.memonto.core.designsystem.component.glitch.GlitchSymbolText
 import com.iftikar.memonto.core.designsystem.theme.LocalSpacing
+import com.iftikar.memonto.feature.settings.components.ThemeToggleComponent
 
 @Composable
 fun Settings(
+    isOnDarkTheme: Boolean?,
     listState: LazyListState,
     viewModel: SettingsViewModel,
     isUsernameFinding: Boolean,
@@ -51,7 +53,7 @@ fun Settings(
             } else {
                 BasicTextField(
                     value = state.userName,
-                    onValueChange = {action(SettingsScreenAction.OnUserNameChange(it))},
+                    onValueChange = { action(SettingsScreenAction.OnUserNameChange(it)) },
                     textStyle = TextStyle(
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 18.sp,
@@ -86,6 +88,13 @@ fun Settings(
                     )
                 )
             }
+        }
+
+        item {
+            ThemeToggleComponent(
+                isDarkTheme = isOnDarkTheme ?: false,
+                toggleTheme = { action(SettingsScreenAction.OnThemeToggle) }
+            )
         }
     }
 }
